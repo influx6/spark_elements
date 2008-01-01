@@ -18,7 +18,7 @@ class Elements{
         SparkRegistry.register('elements','AttrCore',AttrCore.create);
         SparkRegistry.register('elements','GetAttr',GetAttr.create);
         SparkRegistry.register('elements','SetAttr',SetAttr.create);
-        SparkRegistry.register('elements','ReadHTML',ReadHtml.create);
+        SparkRegistry.register('elements','ReadHTML',ReadHTML.create);
         SparkRegistry.register('elements','WriteHTML',WriteHTML.create);
         SparkRegistry.register('elements','GetDataAttr',GetDataAttr.create);
         SparkRegistry.register('elements','SetDataAttr',SetDataAttr.create);
@@ -47,7 +47,6 @@ class Elements{
      ]);
    });
   
-   static elementExist => Funcs.alwaysEffect(Valids.exist);
 }
 
 class AttrCore extends Component{
@@ -56,9 +55,11 @@ class AttrCore extends Component{
     static create() => new AttrCore();
 
     AttrCore(): super('AttrCore'){
-      this.removeDefaultPorts();
-    
-      this.makePort('in:elem');
+      
+      this.createSpace('in');
+      this.createSpace('out');
+
+      this.makeInport('in:elem');
 
       this.port('static:option').bindPort(this.port('in:elem'));
 
@@ -74,14 +75,15 @@ class CSS extends AttrCore{
 
   CSS(){
     this.meta('id','CSS');
-    this.makePort('in:get');
-    this.makePort('out:val');
 
-    this.makePort('in:key');
-    this.makePort('in:val');
+    this.makeInport('in:get');
+    this.makeOutport('out:val');
 
-    this.port('in:get').forceCondition(Elements.elementExist(this.elem));
-    this.port('in:val').forceCondition(Elements.elementExist(this.elem));
+    this.makeInport('in:key');
+    this.makeInport('in:val');
+
+    this.port('in:get').forceCondition((n){ return Valids.exist(this.elem); });
+    this.port('in:val').forceCondition((n){ return Valids.exist(this.elem); });
 
     this.port('in:get').forceCondition(Valids.isString);
     this.port('in:key').forceCondition(Valids.isString);
@@ -107,10 +109,10 @@ class GetAttr extends AttrCore{
 
     GetAttr(){
       this.meta('id','GetAttr');
-      this.makePort('in:get');
-      this.makePort('out:value');
+      this.makeInport('in:get');
+      this.makeOutport('out:value');
       
-      this.port('in:get').forceCondition(Elements.elementExist(this.elem));
+      this.port('in:get').forceCondition((n){ return Valids.exist(this.elem); });
       this.port('in:get').forceCondition(Valids.isString);
 
       this.port('in:get').tap((n){
@@ -130,11 +132,12 @@ class SetAttr extends AttrCore{
 
       this.meta('id','SetAttr');
 
-      this.makePort('in:key');
-      this.makePort('in:val');
+      this.makeInport('in:key');
+      this.makeInport('in:val');
+      this.makeOutport('out:done');
 
-      this.port('in:val').forceCondition(Elements.elementExist(this.elem));
-      this.port('in:val').forceCondition(Funcs.alwaysEffect(Valids.exist)(key));
+      this.port('in:val').forceCondition((n){ return Valids.exist(this.elem); });
+      this.port('in:val').forceCondition((n){ return Valids.exist(key); });
       this.port('in:key').forceCondition(Valids.isString);
 
       this.port('in:key').tap((n){
@@ -143,6 +146,7 @@ class SetAttr extends AttrCore{
 
       this.port('in:val').tap((n){
         this.elem.setAttribute(key,this.processData(n));
+        this.port('out:done').send(true);
       });
 
     }
@@ -159,45 +163,47 @@ class Attr extends Component{
    static create() => new Attr();
 
    Attr(): super('Attr'){
-     this.removeDefaultPorts();
-     this.enableSubnet();
-     this.network.removeDefaultPorts();
      
-     this.makePort('in:elem');
-     this.makePort('in:get');
-     this.makePort('in:set');
-     this.makePort('in:val');
-     this.makePort('out:value');
+     this.enableSubnet();
+     this.createSpace('in');
+     this.createSpace('out');
+
+     this.makeInport('in:elem');
+     this.makeInport('in:get');
+     this.makeInport('in:set');
+     this.makeInport('in:val');
+     this.makeOutport('out:value');
       
 
-     this.network.makePort('in:elem');
-     this.network.makePort('in:get');
-     this.network.makePort('in:set');
-     this.network.makePort('in:val');
-     this.network.makePort('out:value');
+     this.network.createSpace('in');
+     this.network.createSpace('out');
+     this.network.makeInport('in:elem');
+     this.network.makeInport('in:get');
+     this.network.makeInport('in:set');
+     this.network.makeInport('in:val');
+     this.network.makeOutport('out:value');
+    
+     this.port('static:option').bindPort(this.port('in:elem'));
 
      this.port('in:elem').bindPort(this.network.port('in:elem'));
      this.port('in:get').bindPort(this.network.port('in:get'));
      this.port('in:set').bindPort(this.network.port('in:set'));
      this.port('in:val').bindPort(this.network.port('in:val'));
-     this.port('out:value').bindPort(this.network.port('out:value'));
+     this.network.port('out:value').bindPort(this.port('out:value'));
 
-     this.network.port('in:elem').forceCondition(Elements.isElement);
-     this.network.port('static:option').bindPort(this.port('in:elem'));
-      
      this.network.add('elements/GetAttr','getAttr');
      this.network.add('elements/SetAttr','setAttr');
     
      this.network.ensureBinding('getAttr','in:elem','*','in:elem');
      this.network.ensureBinding('setAttr','in:elem','*','in:elem');
 
-     this.network.ensureBinding('getAttr','out:value','*','out:out');
      this.network.ensureBinding('getAttr','in:get','*','in:get');
      this.network.ensureBinding('getAttr','in:value','*','in:value');
 
      this.network.ensureBinding('setAttr','in:val','*','in:val');
-     this.network.ensureBinding('setAttr','in:set','*','in:set');
+     this.network.ensureBinding('setAttr','in:key','*','in:set');
 
+     this.network.ensureBinding('*','out:value','getAttr','out:value');
    }
 }
 
@@ -208,9 +214,9 @@ class AddClass extends AttrCore{
     AddClass(){
       this.meta('id','AddClass');
 
-      this.makePort('in:class');
+      this.makeInport('in:class');
       
-      this.port('in:val').forceCondition(Elements.elementExist(this.elem));
+      this.port('in:val').forceCondition((n) => Valids.exist(this.elem));
       this.port('in:val').forceCondition(Valids.isString);
       this.port('in:val').tap((n){
         this.elem.classes.add(n.data);
@@ -223,11 +229,12 @@ class RemoveClass extends AttrCore{
     static create() => new RemoveClass();
 
     RemoveClass(){
+      this.createSpace('err');
       this.meta('id','RemoveClass');
 
-      this.makePort('in:val');
-      this.makePort('out:success');
-      this.makePort('err:failed');
+      this.makeInport('in:val');
+      this.makeOutport('out:success');
+      this.makeOutport('err:failed');
 
       this.port('in:val').forceCondition(Elements.elementExist(this.elem));
       this.port('in:val').forceCondition(Valids.isString);
@@ -245,11 +252,12 @@ class HasClass extends AttrCore{
     static create() => new HasClass();
 
     HasClass(){
+      this.createSpace('err');
       this.meta('id','HasClass');
 
-      this.makePort('in:val');
-      this.makePort('out:true');
-      this.makePort('err:false');
+      this.makeInport('in:val');
+      this.makeOutport('out:true');
+      this.makeInport('err:false');
 
       this.port('in:val').forceCondition(Elements.elementExist(this.elem));
       this.port('in:val').forceCondition(Valids.isString);
@@ -267,8 +275,8 @@ class GetDataAttr extends AttrCore{
     GetDataAttr(){
       this.meta('id','GetDataAttr');
 
-      this.makePort('in:get');
-      this.makePort('out:val');
+      this.makeInport('in:get');
+      this.makeOutport('out:val');
 
       this.port('in:get').forceCondition(Elements.elementExist(this.elem));
       this.port('in:get').forceCondition(Valids.isString);
@@ -289,8 +297,8 @@ class SetDataAttr extends AttrCore{
     SetDataAttr(){
       this.meta('id','SetDataAttr');
 
-      this.makePort('in:key');
-      this.makePort('in:val');
+      this.makeInport('in:key');
+      this.makeInport('in:val');
 
       this.port('in:val').forceCondition(Elements.elementExist(this.elem));
       this.port('in:key').forceCondition(Valids.isString);
@@ -313,17 +321,17 @@ class DataAttr extends Component{
       this.meta('id','DataAttr');
       this.enableSubnet();
 
-      this.makePort('in:get');
-      this.makePort('in:elem');
-      this.makePort('in:set');
-      this.makePort('in:val');
-      this.makePort('out:val');
+      this.makeInport('in:get');
+      this.makeInport('in:elem');
+      this.makeInport('in:set');
+      this.makeInport('in:val');
+      this.makeOutport('out:val');
 
-      this.network.makePort('in:get');
-      this.network.makePort('in:elem');
-      this.network.makePort('in:set');
-      this.network.makePort('in:val');
-      this.network.makePort('out:val');
+      this.network.makeInport('in:get');
+      this.network.makeInport('in:elem');
+      this.network.makeInport('in:set');
+      this.network.makeInport('in:val');
+      this.network.makeOutport('out:val');
       
       this.port('in:elem').bindPort(this.network.port('in:elem'));
       this.port('in:get').bindPort(this.network.port('in:get'));
@@ -359,8 +367,8 @@ class WriteHTML extends AttrCore{
   
     static create() => new WriteHTML();
     WriteHTML(){
-      this makePort('in:html');
-      this makePort('out:elem');
+      this makeInport('in:html');
+      this makeOutport('out:elem');
 
       this.port('in:html').forceCondition(Valids.isString);
       this.port('in:html').tap((n){
@@ -374,7 +382,7 @@ class ReadHTML extends AttrCore{
   
     static create() => new ReadHTML();
     ReadHTML(){
-      this.makePort('out:html');
+      this.makeOutport('out:html');
 
       this.port('in:elem').tap((n){
         this.port('out:html').send(n.data.innerHTML);
@@ -388,8 +396,11 @@ class Element extends Component{
   static create() => new Element();
 
   Element(): super("Element"){
-    this.makePort('in:elem');
-    this.makePort('out:elem');
+    this.createSpace('in');
+    this.createSpace('out');
+
+    this.makeInport('in:elem');
+    this.makeOutport('out:elem');
     
 
     this.port('in:elem').forceCondition(Elements.isElement);
@@ -414,9 +425,13 @@ class QuerySelector extends Component{
   static create() => new QuerySelector();
 
   QuerySelector(): super("QuerySelector"){
-    this.makePort('in:query');
-    this.makePort('out:val');
-    this.makePort('in:elem');
+    
+    this.createSpace('in');
+    this.createSpace('out');
+
+    this.makeInport('in:query');
+    this.makeOutport('out:val');
+    this.makeInport('in:elem');
 
     this.port('in:elem').forceCondition(Elements.isElement);
     this.port('in:query').forceCondition(Valid.isString);
@@ -453,10 +468,13 @@ class MapAttributable extends Component{
   static create(fn) => new MapAttributable(fn);
    
   MapAttributable(Function handle): super('MapAttributable'){
-    this.removeDefaultPorts();
-    this.makePort('in:attr');
-    this.makePort('in:elem');
-    this.makePort('out:elem');
+
+    this.createSpace('in');
+    this.createSpace('out');
+
+    this.makeInport('in:attr');
+    this.makeInport('in:elem');
+    this.makeOutport('out:elem');
     
     this.port('in:attr').forceCondition(Valids.isMap);
     this.port('in:attr').tap((n){ this.attr = n; });

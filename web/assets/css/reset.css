@@ -1,0 +1,92 @@
+*{
+	box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	-webkit-box-sizing: border-box;
+	-o-box-sizing: border-box;
+	padding:0px;
+	margin:0px
+}
+
+html,body,menu,nav,section,article,header,div,aside,em,ul,li,time,summary,caption,h1,h2,h3,h4,h5,h6,abbr,details,mark,video,audio,code,cite,thead,table,tr,th,p,blockquote,img,span,br,hr,fieldset,a,strong,footer,hgroup,figcaption,dd,dt,dl,b,l,label,iframe,frame,samp,ins,kbd{
+	background:transparent;
+	border:0;
+	vertical-align:baseline;
+	font-size:100%;
+	outline:0;
+	padding:0px;
+	margin:0px
+}
+
+body{
+	font-size:100%
+}
+
+h1,h2,h3,h4,h5,h6{font-size:100%;}
+section,article,header,figure,div,aside,details,figcaption,menu,nav{display:block}
+a,a:hover,a:active,a:focus,a:visited{text-decoration:none;margin:0;padding:0;font-size:100%;color:#000}
+ul,li{list-style-type:none}
+.clear{ clear:both;}
+h1{ font-size: 2.0em; }
+h2{ font-size: 1.5em; }
+h3{ font-size: 1.0em; }
+h4{ font-size: 0.5em; }
+h5{ font-size: 0.3em; }
+h6{ font-size: 0.1em; }
+
+.red{color:red}
+.green{color:green}
+.redbg{background:red}
+.greenbg{background:green}
+.greenborder{border:1px solid green}
+.redborder{border:1px solid red}
+
+h1,h2,h3,h4,h5,h6{font-family:helvetica,sans-serif,serif}
+
+h1 a,h2 a,h3 a,h4 a,h5 a,h6 a,h1 span,
+h2 span,h3 span,h4 span,h5 span,h6 span,h1 em,
+h2 em,h3 em,h4 em,h5 em,h6 em,h1 b,
+h2 b,h3 b,h4 b,h5 b,h6 b{font-family:helvetica,sans-serif,serif}
+
+p,span,a,label,li{font-family:georgia,helvetica,arial,sans-serif,serif}
+
+@font-face{font-family:"Tamil Sangam MN";src:url("./assets/fonts/tamil.ttc") format("truetype")}
+
+.selfExpand{box-sizing:border-box;-webkit-box-sizing:border-box;-o-box-sizing:border-box;-moz-box-sizing:border-box}
+.grid12{box-sizing:border-box;-webkit-box-sizing:border-box;-o-box-sizing:border-box;-moz-box-sizing:border-box}.grid12 .full{width:100%}
+.grid12 .half{width:50%}
+.grid12 .box{width:8.333333333333332%}
+.grid12 .box1-2{width:16.666666666666664%}
+.grid12 .box1-3{width:25%}
+.grid12 .box1-4{width:33.33333333333333%}
+.grid12 .box1-5{width:41.66666666666667%}
+.grid12 .box1-6{width:50%}
+.grid12 .box1-7{width:58.333333333333336%}
+.grid12 .box1-8{width:66.66666666666666%}
+.grid12 .box1-9{width:75%}
+.grid12 .box1-10{width:83.33333333333334%}
+.grid12 .box1-11{width:91.66666666666666%}
+.grid12 .box1-12{width:100%}
+.grid12 .box1-13{width:108.33333333333333%}
+.grid12 .box1-14{width:116.66666666666667%}
+.grid12 .box1-15{width:125%}
+.grid12 .box1-16{width:133.33333333333331%}
+.grid96{box-sizing:border-box;-webkit-box-sizing:border-box;-o-box-sizing:border-box;-moz-box-sizing:border-box}.grid96 .full{width:100%}
+.grid96 .half{width:50%}
+.grid96 .box{width:12.5%}
+.grid96 .box1-2{width:25%}
+.grid96 .box1-3{width:37.5%}
+.grid96 .box1-4{width:50%}
+.grid96 .box1-5{width:62.5%}
+.grid96 .box1-6{width:75%}
+.grid96 .box1-7{width:87.5%}
+.grid96 .box1-8{width:100%}
+.grid96 .box1-9{width:112.5%}
+.grid96 .box1-10{width:125%}
+.grid96 .box1-11{width:137.5%}
+.grid96 .box1-12{width:150%}
+.grid96 .box1-13{width:162.5%}
+.grid96 .box1-14{width:175%}
+.grid96 .box1-15{width:187.5%}
+.grid96 .box1-16{width:200%}
+
+

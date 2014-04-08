@@ -1,0 +1,42 @@
+{	  
+ 	  "name":"spark_elements", 
+ 	 	 
+ 	 "description":"sparflow components for client side ", 
+ 	 	 
+ 	 "version":"0.0.1", 
+ 	 	 
+ 	 "license":"mit", 
+ 	 	 
+ 	 "install_dir":"./packages", 
+ 	 	 
+ 	 "depends":{ 
+      "sparkflow":{
+          "type":"dartpath",
+          "url":"../sparkflow"
+      },
+ 	 	 
+      "spark_elements":{
+          "type":"dartpath",
+          "url":"."
+      },
+		 "ds":{ 
+			  "type":"dartpath", 
+			 "url":"../ds"
+		 }, 
+			 
+		 "streamable":{ 
+			  "type":"dartpath", 
+			 "url":"../streamable"
+		 }, 
+			 
+		 "hub":{ 
+			  "type":"dartpath", 
+			 "url":"../hub"
+		 }, 
+
+		 "guardedfs":{ 
+			  "type":"dartpath", 
+			 "url":"../guardedfs"
+		 } 
+ 	 }
+}

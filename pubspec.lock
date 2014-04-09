@@ -4,28 +4,24 @@ packages:
   browser:
     description: browser
     source: hosted
-    version: "0.9.1"
+    version: "0.10.0+1"
   ds:
     description: ds
     source: hosted
-    version: "0.4.0"
-  guardedfs:
-    description: guardedfs
-    source: hosted
-    version: "0.1.2"
+    version: "0.4.1"
   hub:
-    description: hub
-    source: hosted
-    version: "0.7.0"
-  path:
-    description: path
-    source: hosted
-    version: "1.0.0"
+    description:
+      path: "../hub"
+      relative: true
+    source: path
+    version: "0.7.3"
   sparkflow:
-    description: sparkflow
-    source: hosted
-    version: "0.1.1"
+    description:
+      path: "../sparkflow"
+      relative: true
+    source: path
+    version: "0.2.5"
   streamable:
     description: streamable
     source: hosted
-    version: "0.1.5"
+    version: "0.2.0"

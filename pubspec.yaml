@@ -1,5 +1,5 @@
 name: spark_elements
-version: 0.1.0
+version: 0.0.1
 author: Alexander Ewetumo<trinoxf@gmail.com>
 description: providing client-side dom components for sparkflow
 homepage: http://github.com/influx6/spark-elements.dart
@@ -7,3 +7,8 @@ dependencies:
   browser: any
   hub: any
   sparkflow: any
+dependency_overrides:
+  sparkflow:
+    path: ../sparkflow
+  hub:
+    path: ../hub

@@ -1,12 +1,13 @@
 library spark.elements;
 
-import 'dart:html';
+import 'dart:html' as html;
 import 'package:sparkflow/sparkflow.dart';
 import 'package:hub/hubclient.dart';
 
 // static class to be called when we need to register this components
 //into the global registry
 class Elements{
+
     static void registerComponents(){
         Component.registerComponents();
         SparkRegistry.register('elements','MapCss',MapCSS.create);
@@ -14,11 +15,13 @@ class Elements{
         SparkRegistry.register('elements','MapAttributable',MapAttributable.create);
 
         SparkRegistry.register('elements','Attr',Attr.create);
+        SparkRegistry.register('elements','getattr',GetAttr.create);
+        SparkRegistry.register('elements','setattr',SetAttr.create);
 
         SparkRegistry.register('elements','element',Element.create);
     }
 
-   static isElement(n) => n.data is Element;
+   static isElement(n) => n is html.Element;
 
    static Function elementOptionValidator = Funcs.matchConditions([
       (e){ return e is Map; },
@@ -35,51 +38,122 @@ class Elements{
   
 }
 
+class GetAttr extends Component{
+    html.Element elem;
+
+    static create() => new GetAttr();
+
+    GetAttr(): super('GetAttr'){
+      this.removeDefaultPorts();
+    
+      this.makePort('in:elem');
+      this.makePort('in:get');
+      this.makePort('out:value');
+      
+      this.port('in:elem').forceCondition(Elements.isElement);
+      this.port('in:get').forceCondition((n){ return Valids.exist(this.elem); });
+      this.port('in:get').forceCondition(Valids.isString);
+
+      this.port('in:elem').tap((n){ this.elem = n.data; });
+      this.port('in:get').tap((n){
+        this.port('out:value').send(this.elem.getAttribute(n.data));
+      });
+
+
+    }
+}
+
+class SetAttr extends Component{
+    html.Element elem;
+    
+    static create() => new SetAttr();
+
+    SetAttr(): super('SetAttr'){
+      this.removeDefaultPorts();
+
+      this.makePort('in:elem');
+      this.makePort('in:set');
+      this.makePort('in:attr');
+
+      this.port('in:elem').tap((n){ this.elem = n.data; });
+      this.port('in:elem').forceCondition(Elements.isElement);
+
+      this.port('in:set').forceCondition((n){ return Valids.exist(this.elem); });
+      this.port('in:set').forceCondition(Valids.isString);
+
+      this.port('in:set').tap((n){
+        var parts = Enums.nthFor(n.data.split(':'));
+        this.elem.setAttribute(parts(0),parts(1));
+      });
+
+    }
+
+}
+
 class Attr extends Component{
    
    static create() => new Attr();
+
    Attr(): super('Attr'){
-      
+
+     this.removeDefaultPorts();
+     this.enableSubnet();
+     
      this.makePort('in:get');
      this.makePort('in:set');
-     this.makePort('in:remove');
      this.makePort('in:elem');
      this.makePort('out:value');
+    
+     this.port('in:elem').forceCondition(Elements.isElement);
 
-     this.port('in:get').forcePacketCondition(Elements.attrPacketValidator('get'));
-     this.port('in:set').forcePacketCondition(Elements.attrPacketValidator('set'));
-     this.port('in:remove').forcePacketCondition(Elements.attrPacketValidator('remove'));
-
-     this.port('in:get').forceCondition(Valids.isString);
-     /* this.port('in:set').forceCondition(Valids.isString); */
-     /* this.port('out:set').forceCondition(Valids.isString); */
-
-
-     this.port('in:get').tap((n){
-     
+     this.port('static:option').bindPort(this.port('in:elem'));
+      
+     this.network.add('elements/GetAttr','getAttr',(com){
+        this.port('in:elem').bindPort(com.port('in:elem'));
+        this.port('in:get').bindPort(com.port('in:get'));
+        com.port('out:value').bindPort(this.port('out:value'));
      });
-
+     
+     this.network.add('elements/SetAttr','setAttr',(com){
+        this.port('in:elem').bindPort(com.port('in:elem'));
+        this.port('in:set').bindPort(com.port('in:set'));
+     });
+    
    }
 }
 
 class Element extends Component{
-  Element elem;
+  html.Element elem;
   
   static create() => new Element();
 
   Element(): super("Element"){
     this.makePort('in:elem');
+    this.makePort('out:elem');
+    this.makePort('in:beat');
+    
+    var beat = (n){
+      this.port('out:elem').send(this.elem);
+    }
 
     this.port('in:elem').forceCondition(Elements.isElement);
+    this.port('in:beat').forceCondition(Elements.isElement);
+
     this.port('in:elem').tap((n){
-      this.elem = elem;
+      this.elem = n.data;
+      beat(n);
     });
+
+    this.port('in:get').forceCondition(Valids.isString);
+    this.port('in:beat').tap(beat);
+    
+
   }
 
 }
 
 class QuerySelector extends Component{
-  Element e;
+  html.Element e;
 
   static create() => new QuerySelector();
 
@@ -97,7 +171,7 @@ class QuerySelector extends Component{
     this.port('in:elem').tap((n){ this.e = n.data; });
 
     this.port('in:query').tap((n){
-      this.port('out:val').send(this.process);
+      this.port('out:val').send(this.process(n));
     });
     
   }
@@ -110,10 +184,10 @@ class QuerySelector extends Component{
 class QuerySelectorAll extends QuerySelector{
   
     QuerySelectorAll(): super(){
-        this.metas('id',"QuerySelectorAll");
+        this.meta('id',"QuerySelectorAll");
     }
 
-    void process(n) => this.e.querySelectorAll(n);
+    void process(n) => this.e.querySelectorAll(n.data);
 }
 
 class MapAttributable extends Component{
@@ -122,20 +196,20 @@ class MapAttributable extends Component{
   static create(fn) => new MapAttributable(fn);
    
   MapAttributable(Function handle): super('MapAttributable'){
-    this.removeAllPorts();
+    this.removeDefaultPorts();
     this.makePort('in:attr');
     this.makePort('in:elem');
     this.makePort('out:elem');
     
     this.port('in:attr').forceCondition(Valids.isMap);
-    this.port('in:attr').tap((n){ this.attrs = n; });
+    this.port('in:attr').tap((n){ this.attr = n; });
     
     this.port('in:elem').bindPort('out:elem');
      
-    this.port('out:elem').forceCondition((n){ return Valids.notExist(this.attr); });
+    this.port('out:elem').forceCondition((n){ return Valids.exist(this.attr); });
     this.port('out:elem').dataTransformer.on((elem){
         Enums.eachAsyncMap(this.attr,(v,k,o,fn){
-           handle(k,v,this.elem);
+           handle(k,v,elem);
            fn(false);
         },(o){ this.attr = null; });
         return elem;
@@ -150,15 +224,15 @@ class MapRemoveAttr extends MapAttributable{
   MapRemoveAttr(): super((k,v,elem){
   
        Funcs.when(Valids.match(k,'data'),(){
-         elem.dataset.remove(v);
+         elem.data.dataset.remove(v);
        });
        
        Funcs.when(Valids.match(k,'class'),(){
-         elem.classes.remove(v);
+         elem.data.classes.remove(v);
        });
        
        Funcs.when((Valids.isNot(k,'attr')),(){
-         elem.attributes.remove(v);
+         elem.data.attributes.remove(v);
        });
   
   }){
@@ -169,7 +243,7 @@ class MapRemoveAttr extends MapAttributable{
 class MapCSS extends MapAttributable{
    
    static create() => new MapCSS();
-   MapCSS(): super((k,v,elem){ elem.style.setProperty(k,v); }){
+   MapCSS(): super((k,v,elem){ elem.data.style.setProperty(k,v); }){
      this.meta('id','MapCSS');
    } 
 }

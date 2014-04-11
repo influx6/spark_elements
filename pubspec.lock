@@ -14,13 +14,13 @@ packages:
       path: "../hub"
       relative: true
     source: path
-    version: "0.7.3"
+    version: "0.7.4"
   sparkflow:
     description:
       path: "../sparkflow"
       relative: true
     source: path
-    version: "0.2.5"
+    version: "0.2.7"
   streamable:
     description: streamable
     source: hosted

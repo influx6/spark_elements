@@ -122,17 +122,18 @@ class Attr extends Component{
      this.makePort('in:val');
      this.makePort('out:value');
       
-     this.port('in:elem').bindPort(this.network.port('in:elem'));
-     this.port('in:get').bindPort(this.network.port('in:get'));
-     this.port('in:set').bindPort(this.network.port('in:set'));
-     this.port('in:val').bindPort(this.network.port('in:val'));
-     this.port('out:value').bindPort(this.network.port('out:value'));
 
      this.network.makePort('in:elem');
      this.network.makePort('in:get');
      this.network.makePort('in:set');
      this.network.makePort('in:val');
      this.network.makePort('out:value');
+
+     this.port('in:elem').bindPort(this.network.port('in:elem'));
+     this.port('in:get').bindPort(this.network.port('in:get'));
+     this.port('in:set').bindPort(this.network.port('in:set'));
+     this.port('in:val').bindPort(this.network.port('in:val'));
+     this.port('out:value').bindPort(this.network.port('out:value'));
 
      this.network.port('in:elem').forceCondition(Elements.isElement);
      this.network.port('static:option').bindPort(this.port('in:elem'));
@@ -178,9 +179,29 @@ class RemoveClass extends AttrCore{
       this.makePort('err:failed');
 
       this.port('in:val').forceCondition(Elements.elementExist(this.elem));
+      this.port('in:val').forceCondition(Valids.isString);
       this.port('in:val').tap((n){
           if(!this.elem.classes.contains(n.data)) return this.port('err:failed').send(n);
           this.elem.remove(n.data);
+          this.port('out:success').send(n);
+      });
+    }
+
+}
+
+class HasClass extends AttrCore{
+
+    HasClass(){
+      this.meta('id','HasClass');
+
+      this.makePort('in:val');
+      this.makePort('out:success');
+      this.makePort('err:failed');
+
+      this.port('in:val').forceCondition(Elements.elementExist(this.elem));
+      this.port('in:val').forceCondition(Valids.isString);
+      this.port('in:val').tap((n){
+          if(!this.elem.classes.contains(n.data)) return this.port('err:failed').send(n);
           this.port('out:success').send(n);
       });
     }
@@ -230,27 +251,78 @@ class SetDataAttr extends AttrCore{
     }
 }
 
-class DataAttr extends AttrCore{
+class DataAttr extends Component{
 
     DataAttr(){
       this.meta('id','DataAttr');
       this.enableSubnet();
 
       this.makePort('in:get');
+      this.makePort('in:elem');
       this.makePort('in:set');
-      this.makePort('out:res');
+      this.makePort('in:val');
+      this.makePort('out:val');
 
-      this.network.add('elements/GetDataAttr',(com){
+      this.network.makePort('in:get');
+      this.network.makePort('in:elem');
+      this.network.makePort('in:set');
+      this.network.makePort('in:val');
+      this.network.makePort('out:val');
+      
+      this.port('in:elem').bindPort(this.network.port('in:elem'));
+      this.port('in:get').bindPort(this.network.port('in:get'));
+      this.port('in:set').bindPort(this.network.port('in:set'));
+      this.port('in:val').bindPort(this.network.port('in:val'));
+      this.port('out:val').bindPort(this.network.port('out:val'));
 
-      });
+      this.network.port('in:elem').forceCondition(Elements.isElement);
+      this.network.port('static:option').bindPort(this.port('in:elem'));
+    
+      this.network.port('in:get').forceCondition(Valids.isString);
+      this.network.port('in:val').forceCondition(Valids.isString);
+      this.network.port('in:set').forceCondition(Valids.isString);
 
-      this.network.add('elements/SetDataAttr',(com){
+      this.network.add('elements/GetDataAttr','getDataAttr');
+      this.network.add('elements/SetDataAttr','setDataAttr');
+  
+      this.network.ensureBinding('getDataAttr','in:elem','*','in:elem');
+      this.network.ensureBinding('setDataAttr','in:elem','*','in:elem');
 
-      });
+      this.network.ensureBinding('getDataAttr','in:elem','*','in:elem');
+      this.network.ensureBinding('getDataAttr','in:get','*','in:get');
+      this.network.ensureBinding('getDataAttr','out:val','*','out:val');
+
+      this.network.ensureBinding('setDataAttr','in:elem','*','in:elem');
+      this.network.ensureBinding('setDataAttr','in:set','*','in:set');
+      this.network.ensureBinding('setDataAttr','in:val','*','in:val');
 
     }
 }
 
+class WriteHTML extends AttrCore{
+  
+    WriteHTML(){
+      this makePort('in:html');
+      this makePort('out:elem');
+
+      this.port('in:html').forceCondition(Valids.isString);
+      this.port('in:html').tap((n){
+        this.elem.innerHTML = n.data;
+        this.port('out:elem').send(this.elem);
+      });
+    }
+}
+
+class ReadHTML extends AttrCore{
+  
+    ReadHTML(){
+      this.makePort('out:html');
+
+      this.port('in:elem').tap((n){
+        this.port('out:html').send(n.data.innerHTML);
+      });
+    }
+}
 
 class Element extends Component{
   html.Element elem;
@@ -260,14 +332,9 @@ class Element extends Component{
   Element(): super("Element"){
     this.makePort('in:elem');
     this.makePort('out:elem');
-    this.makePort('in:beat');
     
-    var beat = (n){
-      this.port('out:elem').send(this.elem);
-    }
 
     this.port('in:elem').forceCondition(Elements.isElement);
-    this.port('in:beat').forceCondition(Elements.isElement);
 
     this.port('in:elem').onSocketSubscription((sub){
         this.port('in:elem').send(this.elem,sub.get('alias'));
@@ -275,11 +342,9 @@ class Element extends Component{
 
     this.port('in:elem').tap((n){
       this.elem = n.data;
-      beat(n);
+      this.port('out:elem').send(n);
     });
 
-    this.port('in:get').forceCondition(Valids.isString);
-    this.port('in:beat').tap(beat);
 
   }
 

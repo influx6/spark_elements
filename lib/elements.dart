@@ -15,10 +15,11 @@ class Elements{
         SparkRegistry.register('elements','MapAttributable',MapAttributable.create);
 
         SparkRegistry.register('elements','Attr',Attr.create);
-        SparkRegistry.register('elements','getattr',GetAttr.create);
-        SparkRegistry.register('elements','setattr',SetAttr.create);
+        SparkRegistry.register('elements','AttrCore',AttrCore.create);
+        SparkRegistry.register('elements','GetAttr',GetAttr.create);
+        SparkRegistry.register('elements','SetAttr',SetAttr.create);
 
-        SparkRegistry.register('elements','element',Element.create);
+        SparkRegistry.register('elements','Element',Element.create);
     }
 
    static isElement(n) => n is html.Element;
@@ -36,47 +37,51 @@ class Elements{
      ]);
    });
   
+   static elementExist => Funcs.alwaysEffect(Valids.exist);
 }
 
-class GetAttr extends Component{
+class AttrCore extends Component{
     html.Element elem;
 
-    static create() => new GetAttr();
+    static create() => new AttrCore();
 
-    GetAttr(): super('GetAttr'){
+    AttrCore(): super('AttrCore'){
       this.removeDefaultPorts();
     
       this.makePort('in:elem');
+      this.port('in:elem').forceCondition(Elements.isElement);
+      this.port('in:elem').tap((e){ this.elem = e.data; });
+    }
+}
+
+class GetAttr extends AttrCore{
+
+    static create() => new GetAttr();
+
+    GetAttr(){
+      this.meta('id','GetAttr');
       this.makePort('in:get');
       this.makePort('out:value');
       
-      this.port('in:elem').forceCondition(Elements.isElement);
       this.port('in:get').forceCondition((n){ return Valids.exist(this.elem); });
       this.port('in:get').forceCondition(Valids.isString);
 
-      this.port('in:elem').tap((n){ this.elem = n.data; });
       this.port('in:get').tap((n){
         this.port('out:value').send(this.elem.getAttribute(n.data));
       });
 
-
     }
 }
 
-class SetAttr extends Component{
-    html.Element elem;
+class SetAttr extends AttrCore{
     
     static create() => new SetAttr();
 
-    SetAttr(): super('SetAttr'){
-      this.removeDefaultPorts();
+    SetAttr(){
+      this.meta('id','SetAttr');
 
-      this.makePort('in:elem');
       this.makePort('in:set');
       this.makePort('in:attr');
-
-      this.port('in:elem').tap((n){ this.elem = n.data; });
-      this.port('in:elem').forceCondition(Elements.isElement);
 
       this.port('in:set').forceCondition((n){ return Valids.exist(this.elem); });
       this.port('in:set').forceCondition(Valids.isString);
@@ -95,7 +100,6 @@ class Attr extends Component{
    static create() => new Attr();
 
    Attr(): super('Attr'){
-
      this.removeDefaultPorts();
      this.enableSubnet();
      
@@ -122,6 +126,100 @@ class Attr extends Component{
    }
 }
 
+class AddClass extends AttrCore{
+  
+    AddClass(){
+      this.meta('id','AddClass');
+
+      this.makePort('in:class');
+      
+      this.port('in:val').forceCondition((n){ return Valids.exist(this.elem); })
+      this.port('in:val').forceCondition(Valids.isString);
+      this.port('in:val').tap((n){
+        this.elem.classes.add(n.data);
+      });
+    }
+}
+
+class RemoveClass extends AttrCore{
+
+    RemoveClass(){
+      this.meta('id','RemoveClass');
+
+      this.makePort('in:val');
+      this.makePort('out:success');
+      this.makePort('err:failed');
+
+      this.port('in:val').forceCondition((n){ return Valids.exist(this.elem); });
+      this.port('in:val').tap((n){
+          if(!this.elem.classes.contains(n.data)) return this.port('err:failed').send(n);
+          this.elem.remove(n.data);
+          this.port('out:success').send(n);
+      });
+    }
+
+}
+
+class GetDataAttr extends AttrCore{
+
+    GetDataAttr(){
+      this.meta('id','GetDataAttr');
+
+      this.makePort('in:get');
+      this.makePort('out:val');
+
+      this.port('in:get').forceCondition((n){ return Valids.exist(this.elem); });
+      this.port('in:get').forceCondition(Valids.isString);
+
+      this.port('in:get').tap((n){
+         Funcs.when(this.elem.dataset.containsKey(n.data),(){
+           this.port('out:val').send(this.elem.dataset[n.data]);
+         });
+      });
+
+    }
+}
+
+class SetDataAttr extends AttrCore{
+
+    SetDataAttr(){
+      this.meta('id','SetDataAttr');
+
+      this.makePort('in:set');
+      this.makePort('out:val');
+
+      this.port('in:set').forceCondition(Elements.elementExist(this.elem));
+      this.port('in:set').forceCondition(Valids.isString);
+
+      this.port('in:set').tap((n){
+          
+      });
+
+    }
+}
+
+class DataAttr extends AttrCore{
+
+    DataAttr(){
+      this.meta('id','DataAttr');
+      this.enableSubnet();
+
+      this.makePort('in:get');
+      this.makePort('in:set');
+      this.makePort('out:res');
+
+      this.network.add('elements/GetDataAttr',(com){
+
+      });
+
+      this.network.add('elements/SetDataAttr',(com){
+
+      });
+
+    }
+}
+
+
 class Element extends Component{
   html.Element elem;
   
@@ -139,6 +237,10 @@ class Element extends Component{
     this.port('in:elem').forceCondition(Elements.isElement);
     this.port('in:beat').forceCondition(Elements.isElement);
 
+    this.port('in:elem').onSocketSubscription((sub){
+        this.port('in:elem').send(this.elem,sub.get('alias'));
+    });
+
     this.port('in:elem').tap((n){
       this.elem = n.data;
       beat(n);
@@ -146,7 +248,6 @@ class Element extends Component{
 
     this.port('in:get').forceCondition(Valids.isString);
     this.port('in:beat').tap(beat);
-    
 
   }
 

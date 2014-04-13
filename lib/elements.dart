@@ -25,6 +25,7 @@ class Elements{
         SparkRegistry.register('elements','AddClass',AddClass.create);
         SparkRegistry.register('elements','HasClass',HasClass.create);
         SparkRegistry.register('elements','RemoveClass',RemoveClass.create);
+        SparkRegistry.register('elements','CSS',CSS.create);
 
         SparkRegistry.register('elements','Element',Element.create);
         SparkRegistry.register('elements','QuerySelectorAll',QuerySelectorAll.create);
@@ -58,9 +59,46 @@ class AttrCore extends Component{
       this.removeDefaultPorts();
     
       this.makePort('in:elem');
+
+      this.port('static:option').bindPort(this.port('in:elem'));
+
       this.port('in:elem').forceCondition(Elements.isElement);
       this.port('in:elem').tap((e){ this.elem = e.data; });
     }
+}
+
+class CSS extends AttrCore{
+  var prop;
+
+  static create() => new CSS();
+
+  CSS(){
+    this.meta('id','CSS');
+    this.makePort('in:get');
+    this.makePort('out:val');
+
+    this.makePort('in:key');
+    this.makePort('in:val');
+
+    this.port('in:get').forceCondition(Elements.elementExist(this.elem));
+    this.port('in:val').forceCondition(Elements.elementExist(this.elem));
+
+    this.port('in:get').forceCondition(Valids.isString);
+    this.port('in:key').forceCondition(Valids.isString);
+
+    this.port('in:get').tap((n){
+      this.port('out:val').send(this.elem.style.getPropertyValue(n.data));
+    });
+
+    this.port('in:key').tap((n){
+      this.prop = n.data;
+    });
+
+    this.port('in:val').tap((n){
+      this.elem.style.setProperty(this.prop,n.data);
+    });
+
+  }
 }
 
 class GetAttr extends AttrCore{
@@ -164,7 +202,9 @@ class Attr extends Component{
 }
 
 class AddClass extends AttrCore{
-  
+      
+    static create() => new AddClass();
+
     AddClass(){
       this.meta('id','AddClass');
 
@@ -179,6 +219,8 @@ class AddClass extends AttrCore{
 }
 
 class RemoveClass extends AttrCore{
+
+    static create() => new RemoveClass();
 
     RemoveClass(){
       this.meta('id','RemoveClass');
@@ -200,6 +242,8 @@ class RemoveClass extends AttrCore{
 
 class HasClass extends AttrCore{
 
+    static create() => new HasClass();
+
     HasClass(){
       this.meta('id','HasClass');
 
@@ -219,6 +263,7 @@ class HasClass extends AttrCore{
 
 class GetDataAttr extends AttrCore{
 
+    static create() => new GetDataAttr();
     GetDataAttr(){
       this.meta('id','GetDataAttr');
 
@@ -240,6 +285,7 @@ class GetDataAttr extends AttrCore{
 class SetDataAttr extends AttrCore{
     var key;
 
+    static create() => new SetDataAttr();
     SetDataAttr(){
       this.meta('id','SetDataAttr');
 
@@ -262,6 +308,7 @@ class SetDataAttr extends AttrCore{
 
 class DataAttr extends Component{
 
+    static create() => new DataAttr();
     DataAttr(){
       this.meta('id','DataAttr');
       this.enableSubnet();
@@ -310,6 +357,7 @@ class DataAttr extends Component{
 
 class WriteHTML extends AttrCore{
   
+    static create() => new WriteHTML();
     WriteHTML(){
       this makePort('in:html');
       this makePort('out:elem');
@@ -324,6 +372,7 @@ class WriteHTML extends AttrCore{
 
 class ReadHTML extends AttrCore{
   
+    static create() => new ReadHTML();
     ReadHTML(){
       this.makePort('out:html');
 
@@ -390,6 +439,7 @@ class QuerySelector extends Component{
 
 class QuerySelectorAll extends QuerySelector{
   
+    static create() => new QuerySelectorAll();
     QuerySelectorAll(): super(){
         this.meta('id',"QuerySelectorAll");
     }

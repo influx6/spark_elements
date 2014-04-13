@@ -195,14 +195,14 @@ class HasClass extends AttrCore{
       this.meta('id','HasClass');
 
       this.makePort('in:val');
-      this.makePort('out:success');
-      this.makePort('err:failed');
+      this.makePort('out:true');
+      this.makePort('err:false');
 
       this.port('in:val').forceCondition(Elements.elementExist(this.elem));
       this.port('in:val').forceCondition(Valids.isString);
       this.port('in:val').tap((n){
-          if(!this.elem.classes.contains(n.data)) return this.port('err:failed').send(n);
-          this.port('out:success').send(n);
+          if(!this.elem.classes.contains(n.data)) return this.port('err:false').send(n);
+          this.port('out:true').send(n);
       });
     }
 

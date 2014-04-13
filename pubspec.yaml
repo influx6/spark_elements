@@ -7,8 +7,8 @@ dependencies:
   browser: any
   hub: any
   sparkflow: any
-dependency_overrides:
-  sparkflow:
-    path: ../sparkflow
-  hub:
-    path: ../hub
+# dependency_overrides:
+#   sparkflow:
+#     path: ../sparkflow
+#   hub:
+#     path: ../hub

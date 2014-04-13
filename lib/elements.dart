@@ -18,8 +18,17 @@ class Elements{
         SparkRegistry.register('elements','AttrCore',AttrCore.create);
         SparkRegistry.register('elements','GetAttr',GetAttr.create);
         SparkRegistry.register('elements','SetAttr',SetAttr.create);
+        SparkRegistry.register('elements','ReadHTML',ReadHtml.create);
+        SparkRegistry.register('elements','WriteHTML',WriteHTML.create);
+        SparkRegistry.register('elements','GetDataAttr',GetDataAttr.create);
+        SparkRegistry.register('elements','SetDataAttr',SetDataAttr.create);
+        SparkRegistry.register('elements','AddClass',AddClass.create);
+        SparkRegistry.register('elements','HasClass',HasClass.create);
+        SparkRegistry.register('elements','RemoveClass',RemoveClass.create);
 
         SparkRegistry.register('elements','Element',Element.create);
+        SparkRegistry.register('elements','QuerySelectorAll',QuerySelectorAll.create);
+        SparkRegistry.register('elements','QuerySelector',QuerySelector.create);
     }
 
    static isElement(n) => n is html.Element;

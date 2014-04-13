@@ -24,11 +24,16 @@ void main(){
     get.port('out:value').tap(print);
 
     get.port('in:get').send('id');
-
+  
+    //stops all transmission
     get.shutdown();
-
+    
+    //queues this up for next reboot
     get.port('in:get').send('class');
 
     get.boot();
+
+
+    var attr = SparkRegistry.generate('elements/Attr');
 
 }

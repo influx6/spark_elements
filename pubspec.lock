@@ -4,24 +4,22 @@ packages:
   browser:
     description: browser
     source: hosted
-    version: "0.10.0+1"
+    version: "0.10.0+2"
   ds:
     description: ds
     source: hosted
-    version: "0.4.1"
+    version: "0.4.3"
   hub:
-    description:
-      path: "../hub"
-      relative: true
-    source: path
-    version: "0.7.4"
+    description: hub
+    source: hosted
+    version: "0.9.1"
   sparkflow:
     description:
       path: "../sparkflow"
       relative: true
     source: path
-    version: "0.2.7"
+    version: "0.5.7"
   streamable:
     description: streamable
     source: hosted
-    version: "0.2.0"
+    version: "0.2.6"

@@ -19,8 +19,19 @@ void main(){
 
     a.setAttribute('id','chiken');
     a.setAttribute('class','frozen');
+    a.style.width = '400px';
+    a.style.height = '100px';
+    a.style.background = "#222";
 
-    SparkRegistry.generate('elements/getAttr').boot().then((get){
+    SparkFlow.registry.ns('html').generate('dom/element').boot().then((elem){
+
+        elem.port('in:elem').send(a);
+        elem.port('events:sub').send('click');
+        elem.port('out:elem').tap(packetPrint);
+        elem.port('events:events').tap(packetPrint);
+    });
+
+    SparkFlow.registry.ns('html').generate('dom/getAttr').boot().then((get){
 
       get.port('in:elem').send(a);
       get.port('out:value').tap(packetPrint);
@@ -39,7 +50,9 @@ void main(){
     
     }).then((get){
     
-        SparkRegistry.generate('elements/setAttr').boot().then((set){
+
+
+        SparkFlow.registry.ns('html').generate('dom/setAttr').boot().then((set){
         
           set.port('in:elem').send(a);
           set.port('in:key').send('id');
@@ -49,7 +62,7 @@ void main(){
           set.port('in:val').send('page-section');
         });
 
-        SparkRegistry.generate('elements/Attr').boot().then((attr){
+        SparkFlow.registry.ns('html').generate('dom/Attr').boot().then((attr){
         
           attr.port('out:value').tap(packetPrint);
           attr.port('in:elem').send(a);
@@ -58,7 +71,21 @@ void main(){
           attr.port('in:get').send('class');
 
         });
-    
+
+        SparkFlow.registry.ns('html').generate('dom/css').boot().then((css){
+            css.port('in:elem').send(a);
+            
+            css.port('out:val').tap(packetPrint);
+
+            css.port('in:get').send('width');
+
+            css.port('in:key').send('width');
+            css.port('in:val').send('200px');
+
+            css.port('in:get').send('width');
+        });
+      
+
     });
 
 

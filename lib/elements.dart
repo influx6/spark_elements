@@ -8,30 +8,228 @@ import 'package:hub/hubclient.dart';
 //into the global registry
 class Elements{
 
+
     static void registerComponents(){
-        Component.registerComponents();
-        SparkRegistry.register('elements','MapCss',MapCSS.create);
-        SparkRegistry.register('elements','MapRemoveAttr',MapRemoveAttr.create);
-        SparkRegistry.register('elements','MapAttributable',MapAttributable.create);
 
-        SparkRegistry.register('elements','Attr',Attr.create);
-        SparkRegistry.register('elements','AttrCore',AttrCore.create);
-        SparkRegistry.register('elements','GetAttr',GetAttr.create);
-        SparkRegistry.register('elements','SetAttr',SetAttr.create);
-        SparkRegistry.register('elements','ReadHTML',ReadHTML.create);
-        SparkRegistry.register('elements','WriteHTML',WriteHTML.create);
-        SparkRegistry.register('elements','GetDataAttr',GetDataAttr.create);
-        SparkRegistry.register('elements','SetDataAttr',SetDataAttr.create);
-        SparkRegistry.register('elements','AddClass',AddClass.create);
-        SparkRegistry.register('elements','HasClass',HasClass.create);
-        SparkRegistry.register('elements','RemoveClass',RemoveClass.create);
-        SparkRegistry.register('elements','CSS',CSS.create);
+        SparkFlow.createRegistry('html',(r){
 
-        SparkRegistry.register('elements','Element',Element.create);
-        SparkRegistry.register('elements','QuerySelectorAll',QuerySelectorAll.create);
-        SparkRegistry.register('elements','QuerySelector',QuerySelector.create);
-    }
+          r.register('dom','MapCss',MapCSS.create);
+          r.register('dom','MapRemoveAttr',MapRemoveAttr.create);
+          r.register('dom','MapAttributable',MapAttributable.create);
 
+          r.register('dom','Attr',Attr.create);
+          r.register('dom','AttrCore',AttrCore.create);
+          r.register('dom','GetAttr',GetAttr.create);
+          r.register('dom','SetAttr',SetAttr.create);
+          r.register('dom','ReadHTML',ReadHTML.create);
+          r.register('dom','WriteHTML',WriteHTML.create);
+          r.register('dom','GetDataAttr',GetDataAttr.create);
+          r.register('dom','SetDataAttr',SetDataAttr.create);
+          r.register('dom','AddClass',AddClass.create);
+          r.register('dom','HasClass',HasClass.create);
+          r.register('dom','RemoveClass',RemoveClass.create);
+          r.register('dom','CSS',CSS.create);
+
+          r.register('dom','QuerySelectorAll',QuerySelectorAll.create);
+          r.register('dom','QuerySelector',QuerySelector.create);
+
+          r.addMutation('dom/eventfilter',(m){
+                m.meta('desc','allows filtering of dom events by typeName or with a list of allowed typeNames and allows invertion to block only those listed');
+
+                  var allowed = "all";
+                  bool reverse = false;
+
+                  m.createSpace('ev');
+                  m.createSpace('state');
+                  m.createSpace('type');
+
+                  m.makeInport('type:allowed',
+                      meta:{'description':'takes a string or list of allowed event names' });
+                  m.makeInport('ev:events',
+                      meta:{'description':"the port where all events comes in"});
+                  m.makeInport('state:invert',
+                      meta:{'description':"takes a bool operation that inverts the operation"});
+
+                  m.makeOutport('state:pass');
+                  m.makeOutport('state:fail');
+                  
+                  m.port('state:invert').forceCondition(Valids.isBool);
+                  m.port('ev:events').forceCondition(Elements.isEvent);
+
+                  m.port('state:invert').tap((n){
+                    reverse = n.data;
+                  });
+
+                  m.port('type:allowed').forceCondition((n){
+                    return (Valids.isString(n) || Valids.isList(n) ? true : false);
+                  });
+
+                  m.port('type:allowed').tap((n){
+                    allowed = n.data;
+                  });
+                
+
+                var _handle = (fn,fe,n){
+                    var type = n.has('eventType') ? n.get('eventType') : n.data.type;
+
+                    if(Valids.isString(allowed)){
+                    
+                      Funcs.when(Valids.match(allowed,"all"),(){
+                         return fn(n);
+                      });
+
+                      Funcs.when(Valids.match(allowed,"none"),(){
+                         return fe(n);
+                      });
+
+                      Funcs.when(Valids.match(type,allowed),(){
+                         return fn(n);
+                      },(){
+                        return fe(n);
+                      });
+                
+                      return null;
+                    }
+
+
+                    if(Valids.isList(m.allowed))
+                      return Funcs.when(allowed.contains(type),(){
+                        return fn(n);
+                      },(){
+                        return fe(n);
+                      });
+
+                    return fe;
+                };
+
+                var sendFailure = (n){
+                  var fail = m.port('state:fail');
+                  if(fail.hasSubscribers) return fail.send(n);
+                  return null;
+                };
+
+                var filter = (m){
+
+                  Funcs.when(reverse,(){
+
+                     return _handle((n){
+                        return sendFailure(n);
+                     },(n){
+                        return m.port('state:pass').send(n);
+                     },m);
+
+                  },(){
+                      
+                     return _handle((n){
+                        return m.port('state:pass').send(n);
+                     },(n){
+                        return sendFailure(n);
+                     },m);
+
+                  });
+
+
+                };
+
+                m.port('ev:events').tap(filter);
+
+            });
+
+            r.addMutation('dom/eventreactor',(m){
+                m.meta('desc','provides a dom element event pipe through which events pass through');
+
+                Function runner;
+
+                m.enableSubnet();
+                m.createSpace('evin');
+
+                m.makeInport('evin:events',meta:{'desc':"stream of events"});
+                m.makeInport('evin:fn',meta:{"desc":"a function to apply all events with "});
+                
+                m.port('static:option').bindPort(m.port('evin:fn'));
+            
+                m.port('evin:events').forceCondition(Elements.isEvent);
+                m.port('evin:fn').forceCondition(Valids.isFunction);
+
+                m.port('evin:events').pause();
+
+                m.port('evin:fn').tap((n){
+                   runner = n.data;
+                   m.port('evin:events').resume();
+                });
+            });
+
+          r.addMutation('dom/Element',(m){
+
+              var eventcards = MapDecorator.create();
+              m.meta('desc','provides a self contained dom element');
+
+              m.sd.add('elem',null);
+
+              m.createSpace('in');
+              m.createSpace('out');
+              m.createSpace('events');
+
+              m.makeInport('in:elem');
+              m.makeOutport('out:elem');
+              m.makeInport('events:sub');
+              m.makeInport('events:unsub');
+              m.makeOutport('events:events');
+
+              m.port('in:elem').forceCondition(Elements.isElement);
+
+              m.port('out:elem').pause();
+
+              m.port('in:elem').tap((n){
+                m.sharedData.update('elem',n.data);
+                m.port('out:elem').send(n);
+                m.port('out:elem').resume();
+              });
+
+              var notifyEvent = (packet){
+                if(eventcards.has(packet.data)) return null;
+                var fn = (e){
+                  var pack = m.port('events:events').createDataPacket(e);
+                  pack.update('eventType',packet.data);
+                  return m.port('events:events').send(pack);
+                };
+
+                eventcards.add(packet.data,fn);
+                m.sd.get('elem').addEventListener(packet.data,fn);
+              };
+
+              var unNotifyEvent = (packet){
+                if(!m.eventcards.has(packet.data)) return null;
+                var fn = eventcards.destroy(packet.data);
+                m.sd.get('elem').addEventListener(packet.data,fn);
+              };
+
+
+              m.port('events:sub').pause();
+              m.port('events:unsub').pause();
+            
+              m.port('events:sub').forceCondition(Valids.isString);
+              m.port('events:unsub').forceCondition(Valids.isString);
+
+              m.port('events:sub').tap(notifyEvent);
+              m.port('events:unsub').tap(unNotifyEvent);
+
+              m.port('events:sub').tap(notifyEvent);
+              m.port('events:unsub').tap(unNotifyEvent);
+
+              m.port('in:elem').tap((pack){
+                m.port('events:sub').resume();
+                m.port('events:unsub').resume();
+              });
+
+          });
+
+      });
+
+   }
+
+   static bool isEvent(e) => e is html.Event;
+        
    static isElement(n) => n is html.Element;
 
    static Function elementOptionValidator = Funcs.matchConditions([
@@ -82,9 +280,17 @@ class CSS extends AttrCore{
     this.makeInport('in:key');
     this.makeInport('in:val');
 
-    this.port('in:get').forceCondition((n){ return Valids.exist(this.elem); });
-    this.port('in:val').forceCondition((n){ return Valids.exist(this.elem); });
+    this.port('in:get').pause();
+    this.port('in:val').pause();
+    this.port('in:key').pause();
 
+    this.port('in:elem').tap((n){
+      this.port('in:get').resume();
+      this.port('in:val').resume();
+      this.port('in:key').resume();
+    });
+
+    
     this.port('in:get').forceCondition(Valids.isString);
     this.port('in:key').forceCondition(Valids.isString);
 
@@ -112,8 +318,12 @@ class GetAttr extends AttrCore{
       this.makeInport('in:get');
       this.makeOutport('out:value');
       
-      this.port('in:get').forceCondition((n){ return Valids.exist(this.elem); });
+      this.port('in:get').pause();
       this.port('in:get').forceCondition(Valids.isString);
+
+      this.port('in:elem').tap((n){
+        this.port('in:get').resume();
+      });
 
       this.port('in:get').tap((n){
         this.port('out:value').send(this.elem.getAttribute(n.data));
@@ -128,20 +338,30 @@ class SetAttr extends AttrCore{
 
     SetAttr(){
       String key;
-      dynamic val;
 
       this.meta('id','SetAttr');
 
       this.makeInport('in:key');
       this.makeInport('in:val');
       this.makeOutport('out:done');
+  
+      this.port('in:val').pause();
 
-      this.port('in:val').forceCondition((n){ return Valids.exist(this.elem); });
-      this.port('in:val').forceCondition((n){ return Valids.exist(key); });
+      var resumekey = (){
+        return Funcs.when(Valids.exist(this.elem) && Valids.exist(key),(){
+            this.port('in:val').resume();
+        });
+      };
+
       this.port('in:key').forceCondition(Valids.isString);
+
+      this.port('in:elem').tap((n){
+          resumekey();
+      });
 
       this.port('in:key').tap((n){
           key = n.data;
+          resumekey();
       });
 
       this.port('in:val').tap((n){
@@ -191,8 +411,8 @@ class Attr extends Component{
      this.port('in:val').bindPort(this.network.port('in:val'));
      this.network.port('out:value').bindPort(this.port('out:value'));
 
-     this.network.add('elements/GetAttr','getAttr');
-     this.network.add('elements/SetAttr','setAttr');
+     this.network.add('html/dom/GetAttr','getAttr');
+     this.network.add('html/dom/SetAttr','setAttr');
     
      this.network.ensureBinding('getAttr','in:elem','*','in:elem');
      this.network.ensureBinding('setAttr','in:elem','*','in:elem');
@@ -215,12 +435,20 @@ class AddClass extends AttrCore{
       this.meta('id','AddClass');
 
       this.makeInport('in:class');
+      this.makeInport('in:val');
       
-      this.port('in:val').forceCondition((n) => Valids.exist(this.elem));
+      this.port('in:val').pause();
+
+      this.port('in:elem').tap((n){
+        this.port('in:val').resume();
+      });
+
       this.port('in:val').forceCondition(Valids.isString);
+
       this.port('in:val').tap((n){
         this.elem.classes.add(n.data);
       });
+
     }
 }
 
@@ -236,10 +464,16 @@ class RemoveClass extends AttrCore{
       this.makeOutport('out:success');
       this.makeOutport('err:failed');
 
-      this.port('in:val').forceCondition(Elements.elementExist(this.elem));
+      this.port('in:val').pause();
+
+      this.port('in:elem').tap((n){
+        this.port('in:val').resume();
+      });
+
       this.port('in:val').forceCondition(Valids.isString);
       this.port('in:val').tap((n){
-          if(!this.elem.classes.contains(n.data)) return this.port('err:failed').send(n);
+          if(!this.elem.classes.contains(n.data)) 
+              return this.port('err:failed').send(n);
           this.elem.remove(n.data);
           this.port('out:success').send(n);
       });
@@ -259,10 +493,16 @@ class HasClass extends AttrCore{
       this.makeOutport('out:true');
       this.makeInport('err:false');
 
-      this.port('in:val').forceCondition(Elements.elementExist(this.elem));
+      this.port('in:val').pause();
+
+      this.port('in:elem').tap((n){
+        this.port('in:val').resume();
+      });
+
       this.port('in:val').forceCondition(Valids.isString);
       this.port('in:val').tap((n){
-          if(!this.elem.classes.contains(n.data)) return this.port('err:false').send(n);
+          if(!this.elem.classes.contains(n.data)) 
+              return this.port('err:false').send(n);
           this.port('out:true').send(n);
       });
     }
@@ -278,7 +518,12 @@ class GetDataAttr extends AttrCore{
       this.makeInport('in:get');
       this.makeOutport('out:val');
 
-      this.port('in:get').forceCondition(Elements.elementExist(this.elem));
+      this.port('in:get').pause();
+
+      this.port('in:elem').tap((n){
+        this.port('in:get').resume();
+      });
+
       this.port('in:get').forceCondition(Valids.isString);
 
       this.port('in:get').tap((n){
@@ -286,7 +531,7 @@ class GetDataAttr extends AttrCore{
            this.port('out:val').send(this.elem.dataset[n.data]);
          });
       });
-
+    
     }
 }
 
@@ -300,11 +545,12 @@ class SetDataAttr extends AttrCore{
       this.makeInport('in:key');
       this.makeInport('in:val');
 
-      this.port('in:val').forceCondition(Elements.elementExist(this.elem));
+      this.port('in:val').pause();
       this.port('in:key').forceCondition(Valids.isString);
 
       this.port('in:key').tap((n){
         this.key = key;
+        this.port('in:val').resume();
       });
 
       this.port('in:val').tap((n){
@@ -346,8 +592,8 @@ class DataAttr extends Component{
       this.network.port('in:val').forceCondition(Valids.isString);
       this.network.port('in:set').forceCondition(Valids.isString);
 
-      this.network.add('elements/GetDataAttr','getDataAttr');
-      this.network.add('elements/SetDataAttr','setDataAttr');
+      this.network.add('elements/elements/GetDataAttr','getDataAttr');
+      this.network.add('elements/elements/SetDataAttr','setDataAttr');
   
       this.network.ensureBinding('getDataAttr','in:elem','*','in:elem');
       this.network.ensureBinding('setDataAttr','in:elem','*','in:elem');
@@ -367,8 +613,8 @@ class WriteHTML extends AttrCore{
   
     static create() => new WriteHTML();
     WriteHTML(){
-      this makeInport('in:html');
-      this makeOutport('out:elem');
+      this.makeInport('in:html');
+      this.makeOutport('out:elem');
 
       this.port('in:html').forceCondition(Valids.isString);
       this.port('in:html').tap((n){
@@ -390,34 +636,6 @@ class ReadHTML extends AttrCore{
     }
 }
 
-class Element extends Component{
-  html.Element elem;
-  
-  static create() => new Element();
-
-  Element(): super("Element"){
-    this.createSpace('in');
-    this.createSpace('out');
-
-    this.makeInport('in:elem');
-    this.makeOutport('out:elem');
-    
-
-    this.port('in:elem').forceCondition(Elements.isElement);
-
-    this.port('in:elem').onSocketSubscription((sub){
-        this.port('in:elem').send(this.elem,sub.get('alias'));
-    });
-
-    this.port('in:elem').tap((n){
-      this.elem = n.data;
-      this.port('out:elem').send(n);
-    });
-
-
-  }
-
-}
 
 class QuerySelector extends Component{
   html.Element e;
@@ -432,14 +650,20 @@ class QuerySelector extends Component{
     this.makeInport('in:query');
     this.makeOutport('out:val');
     this.makeInport('in:elem');
+  
+    this.port('in:query').pause();
+
 
     this.port('in:elem').forceCondition(Elements.isElement);
-    this.port('in:query').forceCondition(Valid.isString);
-    this.port('in:query').forceCondition((n){
-      if(this.e != null) return true; return false;
+    this.port('in:query').forceCondition(Valids.isString);
+  
+    this.port('in:elem').tap((p){ 
+      this.e = p.data;  
     });
 
-    this.port('in:elem').tap((n){ this.e = n.data; });
+    this.port('in:elem').tap((e){ 
+      this.port('in:query').resume(); 
+    });
 
     this.port('in:query').tap((n){
       this.port('out:val').send(this.process(n));
@@ -476,12 +700,14 @@ class MapAttributable extends Component{
     this.makeInport('in:elem');
     this.makeOutport('out:elem');
     
+    this.port('out:elem').pause();
+
     this.port('in:attr').forceCondition(Valids.isMap);
     this.port('in:attr').tap((n){ this.attr = n; });
+    this.port('in:attr').tap((n){ this.port('out:elem').resume(); });
     
     this.port('in:elem').bindPort('out:elem');
      
-    this.port('out:elem').forceCondition((n){ return Valids.exist(this.attr); });
     this.port('out:elem').dataTransformer.on((elem){
         Enums.eachAsyncMap(this.attr,(v,k,o,fn){
            handle(k,v,elem);
